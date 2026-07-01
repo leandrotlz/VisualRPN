@@ -1,4 +1,6 @@
 :root {
+    --grid-size: 40px;
+
     /* https://m3.material.io/styles/color/static/baseline */
     --bg-color: #141218;    /* Surface */
     --grid-color: #211F26;  /* Surface Container */
