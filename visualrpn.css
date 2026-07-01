@@ -1,0 +1,26 @@
+:root {
+    /* https://m3.material.io/styles/color/static/baseline */
+    --bg-color: #141218;    /* Surface */
+    --grid-color: #211F26;  /* Surface Container */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    overflow: hidden;
+    user-select: none;
+}
+
+#container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
