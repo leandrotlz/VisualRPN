@@ -6,20 +6,32 @@ export class UserInput {
         this.canvas = canvas;
 
         this.getViewport = callbacks.getViewport || (() => ({ panOffset: { x: 0, y: 0 }, zoomLevel: 1 }));
+        this.getNodeAtPoint = callbacks.getNodeAtPoint || (() => null);
+
         this.onPan = callbacks.onPan || (() => {});
         this.onZoom = callbacks.onZoom || (() => {});
+        this.onNodeSelected = callbacks.onNodeSelected || (() => {});
 
         this.addListeners();
     }
 
     addListeners() {
         this.canvas.addEventListener('mousedown', (e) => {
-            const { panOffset } = this.getViewport();
+            const { panOffset, zoomLevel } = this.getViewport();
 
-            // Left or middle mouse button can be used for panning.
-            // Left mouse button will only pan if starting the drag on the background canvas,
-            // middle mouse button will pan even if dragging over a node or connection.
-            if (e.button === 0 || e.button === 1) {
+            if (e.button === 0)
+            {
+                const node = this.getNodeAtPoint((e.clientX - panOffset.x) / zoomLevel, (e.clientY - panOffset.y) / zoomLevel);
+                if (node) {
+                    this.onNodeSelected(node);
+                } else {
+                    this.onNodeSelected(null);
+                    this.isPanning = true;
+                    this.panStart.x = e.clientX - panOffset.x;
+                    this.panStart.y = e.clientY - panOffset.y;
+                }
+            }
+            else if (e.button === 1) {
                 this.isPanning = true;
                 this.panStart.x = e.clientX - panOffset.x;
                 this.panStart.y = e.clientY - panOffset.y;

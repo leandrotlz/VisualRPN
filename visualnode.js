@@ -37,7 +37,7 @@ export class VisualNode {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, selectedNode) {
         ctx.fillStyle = computedStyles.getPropertyValue(`--node-${this.type}-body`).trim();
         ctx.beginPath();
         ctx.roundRect(this.x, this.y, this.width, this.height, 10);
@@ -52,6 +52,14 @@ export class VisualNode {
         ctx.fillStyle = computedStyles.getPropertyValue('--node-title-color').trim();
         ctx.fillText(this.title, this.x + 12, this.y + 19);
 
+        if (this === selectedNode) {
+            ctx.strokeStyle = computedStyles.getPropertyValue('--node-title-color').trim();
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(this.x, this.y, this.width, this.height, 10);
+            ctx.stroke();
+        }
+
         for (let i = 0; i < this.inputPins; i++) {
             this.drawPin(ctx, "0", this.x, this.y + PIN_LOCATION + (i * PIN_SEPARATION), "in");
         }
@@ -59,5 +67,9 @@ export class VisualNode {
         for (let i = 0; i < this.outputPins; i++) {
             this.drawPin(ctx, "0", this.x + this.width, this.y + PIN_LOCATION + (i * PIN_SEPARATION), "out");
         }
+    }
+
+    hasPoint(x, y) {
+        return (x >= this.x) && (x <= this.x + this.width) && (y >= this.y) && (y <= this.y + this.height);
     }
 }

@@ -12,10 +12,11 @@ const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
 let nodeList = [];
+let selectedNode = null;
 
 function drawCanvas() {
     drawGrid(canvas, ctx, panOffset, zoomLevel);
-    nodeList.forEach(node => node.draw(ctx));
+    nodeList.forEach(node => node.draw(ctx, selectedNode));
 }
 
 function resetNodes() {
@@ -45,6 +46,16 @@ window.addEventListener('resize', resizeCanvas);
 new UserInput(canvas, {
     getViewport: () => ({ panOffset, zoomLevel }),
 
+    getNodeAtPoint: (x, y) => {
+        for (let i = 0; i < nodeList.length; i++)
+        {
+            if (nodeList[i].hasPoint(x, y)) {
+                return nodeList[i];
+            }
+        }
+        return null;
+    },
+
     onPan: (x, y) => {
         panOffset.x = x;
         panOffset.y = y;
@@ -59,6 +70,11 @@ new UserInput(canvas, {
         const zoomFactor = zoomLevel / oldZoom;
         panOffset.x = x - (x - panOffset.x) * zoomFactor;
         panOffset.y = y - (y - panOffset.y) * zoomFactor;
+        drawCanvas();
+    },
+
+    onNodeSelected: (node) => {
+        selectedNode = node;
         drawCanvas();
     }
 });
