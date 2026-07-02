@@ -1,11 +1,10 @@
 import { drawGrid, gridSize } from './canvasgrid.js';
 import { VisualNode } from './visualnode.js';
+import { UserInput } from './userinput.js';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-let isPanning = false;
-let panStart = { x: 0, y: 0 };
 let panOffset = { x: 0, y: 0 };
 
 let zoomLevel = 1.0;
@@ -43,43 +42,25 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-canvas.addEventListener('mousedown', (e) => {
-    // Left or middle mouse button can be used for panning.
-    // Left mouse button will only pan if starting the drag on the background canvas,
-    // middle mouse button will pan even if dragging over a node or connection.
-    if (e.button === 0 || e.button === 1) {
-        isPanning = true;
-        panStart.x = e.clientX - panOffset.x;
-        panStart.y = e.clientY - panOffset.y;
+new UserInput(canvas, {
+    getViewport: () => ({ panOffset, zoomLevel }),
+
+    onPan: (x, y) => {
+        panOffset.x = x;
+        panOffset.y = y;
+        drawCanvas();
+    },
+
+    onZoom: (zoom, x, y, isDelta) => {
+        const oldZoom = zoomLevel;
+
+        zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, isDelta ? zoomLevel + zoom : zoom));
+
+        const zoomFactor = zoomLevel / oldZoom;
+        panOffset.x = x - (y - panOffset.x) * zoomFactor;
+        panOffset.y = x - (y - panOffset.y) * zoomFactor;
+        drawCanvas();
     }
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    if (!isPanning) return;
-    panOffset.x = e.clientX - panStart.x;
-    panOffset.y = e.clientY - panStart.y;
-    drawCanvas();
-});
-
-window.addEventListener('mouseup', () => {
-    isPanning = false;
-});
-
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-    
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const oldZoom = zoomLevel;
-    zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel + delta));
-    
-    const zoomFactor = zoomLevel / oldZoom;
-    panOffset.x = mouseX - (mouseX - panOffset.x) * zoomFactor;
-    panOffset.y = mouseY - (mouseY - panOffset.y) * zoomFactor;
-    
-    drawCanvas();
 });
 
 resizeCanvas();
