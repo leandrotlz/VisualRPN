@@ -57,8 +57,8 @@ new UserInput(canvas, {
         zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, isDelta ? zoomLevel + zoom : zoom));
 
         const zoomFactor = zoomLevel / oldZoom;
-        panOffset.x = x - (y - panOffset.x) * zoomFactor;
-        panOffset.y = x - (y - panOffset.y) * zoomFactor;
+        panOffset.x = x - (x - panOffset.x) * zoomFactor;
+        panOffset.y = y - (y - panOffset.y) * zoomFactor;
         drawCanvas();
     }
 });
