@@ -41,5 +41,31 @@ export class UserInput {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             this.onZoom(delta, e.clientX, e.clientY, true);
         });
+
+        this.canvas.addEventListener('touchstart', (e) => {
+            const { panOffset } = this.getViewport();
+
+            // Assume one touch for now, figure out pinch-to-zoom later.
+            const touch = e.touches[0];
+            this.isPanning = true;
+            this.panStart.x = touch.clientX - panOffset.x;
+            this.panStart.y = touch.clientY - panOffset.y;
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchmove', (e) =>{
+            if (this.isPanning) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.onPan(touch.clientX - this.panStart.x, touch.clientY - this.panStart.y);
+            }
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchend', (e) => {
+            this.isPanning = false;
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchcancel', (e) => {
+            this.isPanning = false;
+        }, { passive: false });
     }
 }
