@@ -1,6 +1,8 @@
 import { drawGrid, gridSize } from './canvasgrid.js';
-import { VisualNode } from './visualnode.js';
 import { UserInput } from './userinput.js';
+
+import { NodeGraph } from './nodegraph.js';
+import { VisualNode } from './visualnode.js';
 
 const computedStyles = window.getComputedStyle(document.documentElement);
 const canvas = document.getElementById('canvas');
@@ -12,20 +14,19 @@ let zoomLevel = 1.0;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
-let nodeList = [];
-let connections = [];
+let graph = new NodeGraph("2 5 + 3 * 10 >= !");
 let selectedNode = null;
 
 function drawCanvas() {
     drawGrid(canvas, ctx, panOffset, zoomLevel);
     drawConnections();
-    nodeList.forEach(node => node.draw(ctx, selectedNode));
+    graph.nodes.forEach(node => node.draw(ctx, selectedNode));
 }
 
 function drawConnections() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = computedStyles.getPropertyValue('--node-body-color').trim();
-    connections.forEach(c => {
+    graph.connections.forEach(c => {
         const fromPoint = c.from.node.getPinPosition(c.from.pin, true);
         const toPoint = c.to.node.getPinPosition(c.to.pin, false);
         ctx.beginPath();
@@ -35,33 +36,10 @@ function drawConnections() {
     });
 }
 
-function resetNodes() {
-    const nodeWidth = 3;
-    const nodeHeight = 2;
-
-    const canvasGridWidth = Math.floor(window.innerWidth / gridSize);
-    const targetGridX = canvasGridWidth - 1 - nodeWidth;
-
-    const canvasGridHeight = Math.floor(window.innerHeight / gridSize);
-    const targetGridY = Math.floor((canvasGridHeight - nodeHeight) / 2);
-
-    nodeList = [];
-    nodeList.push(new VisualNode("constant", ["2"], targetGridX - 10, targetGridY - 1.5, nodeWidth, nodeHeight, [], [2]));
-    nodeList.push(new VisualNode("constant", ["5"], targetGridX - 10, targetGridY + 1.5, nodeWidth, nodeHeight, [], [5]));
-    nodeList.push(new VisualNode("operator", ["Add", "+"], targetGridX - 5, targetGridY, nodeWidth, nodeHeight, [2, 5], [7]));
-    nodeList.push(new VisualNode("output", ["Output"], targetGridX, targetGridY, nodeWidth, nodeHeight, [7], []));
-
-    connections = [];
-    connections.push( { from: { node: nodeList[0], pin: 0 }, to: { node: nodeList[2], pin: 0 } } )
-    connections.push( { from: { node: nodeList[1], pin: 0 }, to: { node: nodeList[2], pin: 1 } } )
-    connections.push( { from: { node: nodeList[2], pin: 0 }, to: { node: nodeList[3], pin: 0 } } )
-}
-
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    resetNodes();
     drawCanvas();
 }
 window.addEventListener('resize', resizeCanvas);
@@ -70,10 +48,10 @@ new UserInput(canvas, {
     getViewport: () => ({ panOffset, zoomLevel }),
 
     getNodeAtPoint: (x, y) => {
-        for (let i = 0; i < nodeList.length; i++)
+        for (let i = 0; i < graph.nodes.length; i++)
         {
-            if (nodeList[i].hasPoint(x, y)) {
-                return nodeList[i];
+            if (graph.nodes[i].hasPoint(x, y)) {
+                return graph.nodes[i];
             }
         }
         return null;
@@ -100,8 +78,8 @@ new UserInput(canvas, {
         selectedNode = node;
         if (node) {
             // Move the node to the end of the array so it renders on top of all others.
-            nodeList = nodeList.filter(n => n !== node);
-            nodeList.push(node);
+            graph.nodes = graph.nodes.filter(n => n !== node);
+            graph.nodes.push(node);
         }
         drawCanvas();
     },
