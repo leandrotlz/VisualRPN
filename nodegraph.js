@@ -42,7 +42,7 @@ export class NodeGraph {
                 this.nodes.push(node);
 
                 const inputs = [];
-                const args = [];
+                const args = Array(operator.inputs).fill(0);
                 for (let i = 0; i < numInputs; i++) {
                     // Take the LAST node from the stack and put it at the START of the inputs array.
                     inputs.unshift(stack.pop());
@@ -55,10 +55,10 @@ export class NodeGraph {
                     });
                     // TODO: check for data types that this node supports and convert if needed.
                     node.inputPins[i] = input.node.outputPins[input.pin];
-                    args.push(node.inputPins[i]);
+                    args[i] = node.inputPins[i];
                 });
 
-                // TODO: assumes correct data types and number of arguments, needs hardening.
+                // TODO: assumes correct data types, needs hardening.
                 node.outputPins[0] = operator.output(...args)
                 stack.push({ node: node, pin: 0 });
             } else {
