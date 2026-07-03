@@ -48,7 +48,7 @@ new UserInput(canvas, {
     getViewport: () => ({ panOffset, zoomLevel }),
 
     getNodeAtPoint: (x, y) => {
-        for (let i = 0; i < graph.nodes.length; i++)
+        for (let i = graph.nodes.length - 1; i >= 0; i--)
         {
             if (graph.nodes[i].hasPoint(x, y)) {
                 return graph.nodes[i];
