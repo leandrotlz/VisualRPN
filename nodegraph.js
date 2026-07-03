@@ -1,18 +1,18 @@
 import { VisualNode } from './visualnode.js';
 
 const OPERATORS = {
-    '&&':   { name: 'AND',              inputs: 2,  output: (v1, v2) => v1 && v2 },
-    '||':   { name: 'OR',               inputs: 2,  output: (v1, v2) => v1 || v2 },
-    '!':    { name: 'NOT',              inputs: 1,  output: (v) => !v },
-    '==':   { name: 'Equals',           inputs: 2,  output: (v1, v2) => v1 == v2 },
-    '>':    { name: 'Greater',          inputs: 2,  output: (v1, v2) => v1 > v2 },
-    '>=':   { name: 'Greater/Equal',    inputs: 2,  output: (v1, v2) => v1 >= v2 },
-    '<':    { name: 'Less',             inputs: 2,  output: (v1, v2) => v1 < v2 },
-    '<=':   { name: 'Less/Equal',       inputs: 2,  output: (v1, v2) => v1 <= v2 },
-    '+':    { name: 'Add',              inputs: 2,  output: (v1, v2) => v1 + v2 },
-    '-':    { name: 'Subtract',         inputs: 2,  output: (v1, v2) => v1 - v2 },
-    '*':    { name: 'Multiply',         inputs: 2,  output: (v1, v2) => v1 * v2 },
-    '/':    { name: 'Divide',           inputs: 2,  output: (v1, v2) => v1 / v2 },
+    '&&':   { name: 'AND',              inputs: 2,  output: (v1, v2) => v1 && v2 ? 1 : 0 },
+    '||':   { name: 'OR',               inputs: 2,  output: (v1, v2) => v1 || v2 ? 1 : 0 },
+    '!':    { name: 'NOT',              inputs: 1,  output: (v) => v ? 0 : 1 },
+    '==':   { name: 'Equals',           inputs: 2,  output: (v1, v2) => v1 == v2 ? 1 : 0 },
+    '>':    { name: 'Greater',          inputs: 2,  output: (v1, v2) => v1 > v2 ? 1 : 0 },
+    '>=':   { name: 'Greater/Equal',    inputs: 2,  output: (v1, v2) => v1 >= v2 ? 1 : 0 },
+    '<':    { name: 'Less',             inputs: 2,  output: (v1, v2) => v1 < v2 ? 1 : 0 },
+    '<=':   { name: 'Less/Equal',       inputs: 2,  output: (v1, v2) => v1 <= v2 ? 1 : 0 },
+    '+':    { name: 'Add',              inputs: 2,  output: (v1, v2) => Number(v1) + Number(v2) },
+    '-':    { name: 'Subtract',         inputs: 2,  output: (v1, v2) => Number(v1) - Number(v2) },
+    '*':    { name: 'Multiply',         inputs: 2,  output: (v1, v2) => Number(v1) * Number(v2) },
+    '/':    { name: 'Divide',           inputs: 2,  output: (v1, v2) => Number(v1) / Number(v2) },
 };
 
 const DEFAULT_NODE_WIDTH = 4;
