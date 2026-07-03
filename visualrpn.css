@@ -11,8 +11,10 @@
     --node-body-font: 12px monospace;
     --node-body-color: #ded8e1;      /* Surface Dim */
 
-    --node-operator-bg: #4f378B;    /* On primary container */
-    --node-operator-body: #211F26;  /* Surface Container */
+    --node-constant-bg: #4a4458;    /* On secondary container */
+    --node-constant-body: #211f26;  /* Surface Container */
+    --node-operator-bg: #4f378b;    /* On primary container */
+    --node-operator-body: #211f26;  /* Surface Container */
     --node-output-bg: #006c35;      /* Green 40 */
     --node-output-body: #00381f;    /* Green 20 */
 

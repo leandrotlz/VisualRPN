@@ -2,6 +2,7 @@ import { drawGrid, gridSize } from './canvasgrid.js';
 import { VisualNode } from './visualnode.js';
 import { UserInput } from './userinput.js';
 
+const computedStyles = window.getComputedStyle(document.documentElement);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -12,11 +13,27 @@ const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
 let nodeList = [];
+let connections = [];
 let selectedNode = null;
 
 function drawCanvas() {
     drawGrid(canvas, ctx, panOffset, zoomLevel);
+    drawConnections();
     nodeList.forEach(node => node.draw(ctx, selectedNode));
+}
+
+function drawConnections() {
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = computedStyles.getPropertyValue('--node-body-color').trim();
+    connections.forEach(c => {
+        const fromPoint = c.from.node.getPinPosition(c.from.pin, true);
+        const toPoint = c.to.node.getPinPosition(c.to.pin, false);
+        // TODO: figure out Bezier curves.
+        ctx.beginPath();
+        ctx.moveTo(fromPoint.x, fromPoint.y);
+        ctx.lineTo(toPoint.x, toPoint.y);
+        ctx.stroke();
+    });
 }
 
 function resetNodes() {
@@ -30,8 +47,15 @@ function resetNodes() {
     const targetGridY = Math.floor((canvasGridHeight - nodeHeight) / 2);
 
     nodeList = [];
-    nodeList.push(new VisualNode("output", "Output", targetGridX, targetGridY, nodeWidth, nodeHeight, 1, 0));
-    nodeList.push(new VisualNode("operator", "Operator", targetGridX - 4, targetGridY, nodeWidth, nodeHeight, 2, 1));
+    nodeList.push(new VisualNode("constant", ["2"], targetGridX - 10, targetGridY - 1.5, nodeWidth, nodeHeight, [], [2]));
+    nodeList.push(new VisualNode("constant", ["5"], targetGridX - 10, targetGridY + 1.5, nodeWidth, nodeHeight, [], [5]));
+    nodeList.push(new VisualNode("operator", ["Add", "+"], targetGridX - 5, targetGridY, nodeWidth, nodeHeight, [2, 5], [7]));
+    nodeList.push(new VisualNode("output", ["Output"], targetGridX, targetGridY, nodeWidth, nodeHeight, [7], []));
+
+    connections = [];
+    connections.push( { from: { node: nodeList[0], pin: 0 }, to: { node: nodeList[2], pin: 0 } } )
+    connections.push( { from: { node: nodeList[1], pin: 0 }, to: { node: nodeList[2], pin: 1 } } )
+    connections.push( { from: { node: nodeList[2], pin: 0 }, to: { node: nodeList[3], pin: 0 } } )
 }
 
 function resizeCanvas() {
@@ -75,6 +99,11 @@ new UserInput(canvas, {
 
     onNodeSelected: (node) => {
         selectedNode = node;
+        if (node) {
+            // Move the node to the end of the array so it renders on top of all others.
+            nodeList = nodeList.filter(n => n !== node);
+            nodeList.push(node);
+        }
         drawCanvas();
     },
 

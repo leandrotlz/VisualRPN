@@ -21,19 +21,29 @@ export class VisualNode {
         this.outputPins = outputPins;
     }
 
-    drawPin(ctx, displayText, x, y, side) {
+    getPinPosition(i, output)
+    {
+        return {
+            x: output ? this.x + this.width : this.x,
+            y: this.y + PIN_LOCATION + (i * PIN_SEPARATION)
+        }
+    }
+
+    drawPin(ctx, i, displayText, output) {
+        const pos = this.getPinPosition(i, output);
+        const side = output ? "out" : "in";
         ctx.fillStyle = computedStyles.getPropertyValue(`--pin-${side}-color`).trim();
         ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.font = computedStyles.getPropertyValue('--node-body-font').trim();
         ctx.fillStyle = computedStyles.getPropertyValue('--node-body-color').trim();
-        if (side === "out") {
+        if (output) {
             const textWidth = ctx.measureText(displayText).width;
-            ctx.fillText(displayText, x - textWidth - PIN_TEXT_OFFSET_X, y + PIN_TEXT_OFFSET_Y);
+            ctx.fillText(displayText, pos.x - textWidth - PIN_TEXT_OFFSET_X, pos.y + PIN_TEXT_OFFSET_Y);
         } else {
-            ctx.fillText(displayText, x + PIN_TEXT_OFFSET_X, y + PIN_TEXT_OFFSET_Y);
+            ctx.fillText(displayText, pos.x + PIN_TEXT_OFFSET_X, pos.y + PIN_TEXT_OFFSET_Y);
         }
     }
 
@@ -48,9 +58,15 @@ export class VisualNode {
         ctx.roundRect(this.x, this.y, this.width, TITLE_HEIGHT, 10);
         ctx.fill();
 
-        ctx.font = computedStyles.getPropertyValue('--node-title-font').trim();
-        ctx.fillStyle = computedStyles.getPropertyValue('--node-title-color').trim();
-        ctx.fillText(this.title, this.x + 12, this.y + 19);
+        if (this.title.length > 0) {
+            ctx.font = computedStyles.getPropertyValue('--node-title-font').trim();
+            ctx.fillStyle = computedStyles.getPropertyValue('--node-title-color').trim();
+            ctx.fillText(this.title[0], this.x + 12, this.y + 19);
+            if (this.title.length > 1) {
+                const textWidth = ctx.measureText(this.title[1]).width;
+                ctx.fillText(this.title[1], this.x - textWidth + this.width - 12, this.y + 19);
+            }
+        }
 
         if (this === selectedNode) {
             ctx.strokeStyle = computedStyles.getPropertyValue('--node-title-color').trim();
@@ -60,12 +76,12 @@ export class VisualNode {
             ctx.stroke();
         }
 
-        for (let i = 0; i < this.inputPins; i++) {
-            this.drawPin(ctx, "0", this.x, this.y + PIN_LOCATION + (i * PIN_SEPARATION), "in");
+        for (let i = 0; i < this.inputPins.length; i++) {
+            this.drawPin(ctx, i, this.inputPins[i], false);
         }
 
-        for (let i = 0; i < this.outputPins; i++) {
-            this.drawPin(ctx, "0", this.x + this.width, this.y + PIN_LOCATION + (i * PIN_SEPARATION), "out");
+        for (let i = 0; i < this.outputPins.length; i++) {
+            this.drawPin(ctx, i, this.outputPins[i], true);
         }
     }
 
