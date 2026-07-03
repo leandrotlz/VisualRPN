@@ -28,10 +28,9 @@ function drawConnections() {
     connections.forEach(c => {
         const fromPoint = c.from.node.getPinPosition(c.from.pin, true);
         const toPoint = c.to.node.getPinPosition(c.to.pin, false);
-        // TODO: figure out Bezier curves.
         ctx.beginPath();
         ctx.moveTo(fromPoint.x, fromPoint.y);
-        ctx.lineTo(toPoint.x, toPoint.y);
+        ctx.bezierCurveTo(fromPoint.x + gridSize, fromPoint.y, toPoint.x - gridSize, toPoint.y, toPoint.x, toPoint.y);
         ctx.stroke();
     });
 }
