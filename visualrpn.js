@@ -76,6 +76,19 @@ new UserInput(canvas, {
     onNodeSelected: (node) => {
         selectedNode = node;
         drawCanvas();
+    },
+
+    onNodeMove: (node, x, y, snap) => {
+        if (snap)
+        {
+            node.x = Math.round(x / gridSize) * gridSize;
+            node.y = Math.round(y / gridSize) * gridSize;
+            drawCanvas();
+        } else {
+            node.x = x;
+            node.y = y;
+        }
+        drawCanvas();
     }
 });
 

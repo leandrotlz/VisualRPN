@@ -4,6 +4,7 @@ export class UserInput {
 
         this.pan = { x: 0, y: 0, active: false }
         this.pinch = { x: 0, y: 0, initialDistance: 0, initialZoom: 0 }
+        this.drag = { x: 0, y: 0, node: null }
 
         this.getViewport = callbacks.getViewport || (() => ({ panOffset: { x: 0, y: 0 }, zoomLevel: 1 }));
         this.getNodeAtPoint = callbacks.getNodeAtPoint || (() => null);
@@ -11,6 +12,7 @@ export class UserInput {
         this.onPan = callbacks.onPan || (() => {});
         this.onZoom = callbacks.onZoom || (() => {});
         this.onNodeSelected = callbacks.onNodeSelected || (() => {});
+        this.onNodeMove = callbacks.onNodeMove || (() => {});
 
         this.addListeners();
     }
@@ -23,17 +25,37 @@ export class UserInput {
         this.pan.y = y;
     }
 
+    getWorldPoint(x, y) {
+        const { panOffset, zoomLevel } = this.getViewport();
+        return {
+            x: (x - panOffset.x) / zoomLevel,
+            y: (y - panOffset.y) / zoomLevel
+        };
+    }
+
+    selectNodeAtPoint(x, y) {
+        const pos = this.getWorldPoint(x, y);
+        const node = this.getNodeAtPoint(pos.x, pos.y);
+        if (node) {
+            this.onNodeSelected(node);
+            this.drag.node = node;
+            this.drag.x = pos.x - node.x;
+            this.drag.y = pos.y - node.y;
+            return true;
+        }
+        this.onNodeSelected(null);
+        this.drag.node = null;
+        return false;
+    }
+
     addListeners() {
         this.canvas.addEventListener('mousedown', (e) => {
-            const { panOffset, zoomLevel } = this.getViewport();
+            const { panOffset } = this.getViewport();
 
             if (e.button === 0)
             {
-                const node = this.getNodeAtPoint((e.clientX - panOffset.x) / zoomLevel, (e.clientY - panOffset.y) / zoomLevel);
-                if (node) {
-                    this.onNodeSelected(node);
-                } else {
-                    this.onNodeSelected(null);
+                if (!this.selectNodeAtPoint(e.clientX, e.clientY))
+                {
                     this.setPanningState(true, e.clientX - panOffset.x, e.clientY - panOffset.y);
                 }
             }
@@ -44,13 +66,17 @@ export class UserInput {
         });
 
         this.canvas.addEventListener('mousemove', (e) => {
-            if (this.pan.active) {
+            if (this.drag.node) {
+                const pos = this.getWorldPoint(e.clientX, e.clientY);
+                this.onNodeMove(this.drag.node, pos.x - this.drag.x, pos.y - this.drag.y, e.shiftKey)
+            } else if (this.pan.active) {
                 this.onPan(e.clientX - this.pan.x, e.clientY - this.pan.y);
             }
         });
 
         window.addEventListener('mouseup', (e) => {
             this.setPanningState(false);
+            this.drag.node = false;
         });
 
         this.canvas.addEventListener('wheel', (e) => {
@@ -64,7 +90,10 @@ export class UserInput {
 
             if (e.touches.length === 1) {
                 const touch = e.touches[0];
-                this.setPanningState(true, touch.clientX - panOffset.x, touch.clientY - panOffset.y);
+                if (!this.selectNodeAtPoint(touch.clientX, touch.clientY))
+                {
+                    this.setPanningState(true, touch.clientX - panOffset.x, touch.clientY - panOffset.y);
+                }
             } else if (e.touches.length === 2) {
                 this.setPanningState(false);
                 // Store the midpoint between the two touches to zoom around it.
@@ -76,10 +105,15 @@ export class UserInput {
         }, { passive: false });
 
         this.canvas.addEventListener('touchmove', (e) =>{
-            if (e.touches.length === 1 && this.pan.active) {
-                e.preventDefault();
+            e.preventDefault();
+            if (e.touches.length === 1) {
                 const touch = e.touches[0];
-                this.onPan(touch.clientX - this.pan.x, touch.clientY - this.pan.y);
+                if (this.pan.active) {
+                    this.onPan(touch.clientX - this.pan.x, touch.clientY - this.pan.y);
+                } else if (this.drag.node) {
+                    const pos = this.getWorldPoint(touch.clientX, touch.clientY);
+                    this.onNodeMove(this.drag.node, pos.x - this.drag.x, pos.y - this.drag.y, e.shiftKey)
+                }
             } else if (e.touches.length === 2 && this.pinch.initialDistance > 0) {
                 const distance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const zoom = this.pinch.initialZoom * (distance / this.pinch.initialDistance);
@@ -89,10 +123,12 @@ export class UserInput {
 
         this.canvas.addEventListener('touchend', (e) => {
             this.setPanningState(false);
+            this.drag.node = null;
         }, { passive: false });
 
         this.canvas.addEventListener('touchcancel', (e) => {
             this.setPanningState(false);
+            this.drag.node = null;
         }, { passive: false });
     }
 }
