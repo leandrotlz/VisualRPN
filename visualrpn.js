@@ -14,7 +14,7 @@ let zoomLevel = 1.0;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
-let graph = new NodeGraph("2 5 + 3 * 10 >= !");
+let graph = new NodeGraph("2 5 + 3 * 10 >= ! 0 1 + 2 3 + 4 + + 9 > ||");
 let selectedNode = null;
 
 function drawCanvas() {
