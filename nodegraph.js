@@ -2,8 +2,8 @@ import { VisualNode } from './visualnode.js';
 
 const booleanInput = (v) => {
     // Any other ways for JavaScript to mess up data types? Yes. Most definitely.
+    if (v === false || v === "false" || v === null || v === undefined) return false;
     if (v === true || v === "true") return true;
-    if (v === false || v === "false") return false;
 
     const n = parseFloat(v);
     // Any non-zero value is true (C standard)
@@ -15,8 +15,8 @@ const booleanInput = (v) => {
 
 const numberInput = (v) => {
     // If we are about to perform arithmetic with a boolean, assume true equals 1.
+    if (v === false || v === "false" || v === null || v === undefined) return 0;
     if (v === true || v === "true") return 1;
-    if (v === false || v === "false") return 0;
 
     const n = parseFloat(v);
     return Number.isNaN(n) ? 0 : n;
@@ -67,23 +67,33 @@ export class NodeGraph {
                 this.nodes.push(node);
 
                 const inputs = [];
-                const args = Array(operator.inputs).fill(0);
+                const args = Array(operator.inputs).fill(null);
                 for (let i = 0; i < numInputs; i++) {
                     // Take the LAST node from the stack and put it at the START of the inputs array.
                     inputs.unshift(stack.pop());
                 }
 
                 inputs.forEach((input, i) => {
-                    this.connections.push({
-                        from: { node: input.node, pin: input.pin },
-                        to: { node: node, pin: i }
-                    });
-                    // TODO: check for data types that this node supports and convert if needed.
-                    node.inputPins[i] = input.node.outputPins[input.pin];
-                    args[i] = node.inputPins[i];
+                    // Do not create a wire if the input node is null.
+                    if (input.node.type === "null") {
+                        node.inputPins[i] = "";
+                        args[i] = null;
+                    } else {
+                        this.connections.push({
+                            from: { node: input.node, pin: input.pin },
+                            to: { node: node, pin: i }
+                        });
+                        node.inputPins[i] = input.node.outputPins[input.pin];
+                        args[i] = node.inputPins[i];
+                    }
                 });
 
                 node.outputPins[0] = operator.output(...args)
+                stack.push({ node: node, pin: 0 });
+            } else if (t === "null") {
+                // The "null" tokens are special; they represent disconnected inputs.
+                const node = new VisualNode("null", [], 0, 0, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT, [], []);
+                this.nodes.push(node);
                 stack.push({ node: node, pin: 0 });
             } else {
                 const node = new VisualNode("constant", [t], 0, 0, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT, [], [t]);
@@ -98,14 +108,47 @@ export class NodeGraph {
         // On a well-formed RPN string, there should be exactly one node left in the stack to send to the output.
         if (stack.length > 0) {
             const result = stack.pop();
-            this.connections.push({
-                from: { node: result.node, pin: result.pin },
-                to: { node: output, pin: 0 }
-            });
-            output.inputPins[0] = result.node.outputPins[result.pin];
+            if (result.node.type !== "null") {
+                this.connections.push({
+                    from: { node: result.node, pin: result.pin },
+                    to: { node: output, pin: 0 }
+                });
+                output.inputPins[0] = result.node.outputPins[result.pin];
+            } else {
+                output.inputPins[0] = "";
+            }
         }
 
+        // Get rid of the null nodes. TODO: "drop" notes will eventually represent disconnected _outputs_.
+        this.nodes = this.nodes.filter(n => n.type !== "null");
+
         this.resetLayout(output);
+    }
+
+    toString() {
+        const tokens = [];
+
+        const recurse = (node) => {
+            if (!node) {
+                tokens.push("null");
+                return;
+            }
+
+            // This is so simple it's funny, we just walk up the pins recursively and the RPN builds itself.
+            for (let i = 0; i < node.inputPins.length; i++) {
+                // Find the node that is connected to this input pin; output null if there isn't one.
+                const conn = this.connections.find(c => c.to.node === node && c.to.pin === i);
+                recurse(conn ? conn.from.node : null);
+            }
+
+            // The actual RPN token is always in title[0]; the output node shouldn't be written into the string.
+            if (node.type !== "output") {
+                tokens.push(node.title[0]);
+            }
+        };
+
+        recurse(this.nodes.find(n => n.type === "output"));
+        return tokens.join(" ");
     }
 
     graphSize(output) {
