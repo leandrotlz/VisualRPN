@@ -16,11 +16,19 @@ const MAX_ZOOM = 2.0;
 
 let graph = new NodeGraph("2 5 + 3 * 10 >= ! null null + 2 3 + null + + 9 > ||");
 let selectedNode = null;
+let activeWire = null;  // Holds the pin where a user started a drag, and the current coordinates it's being dragged to.
 
 function drawCanvas() {
+    if (activeWire && !activeWire.drag) {
+        // A dragged wire was just dropped, resolve it before drawing anything.
+        graph.connectWire(activeWire);
+        activeWire = null;
+    }
+
     drawGrid(canvas, ctx, panOffset, zoomLevel);
     drawConnections();
     graph.nodes.forEach(node => node.draw(ctx, selectedNode));
+    drawActiveWire();
     // DEBUG: Log the RPN after every change.
     console.log(graph.toString());
 }
@@ -36,6 +44,17 @@ function drawConnections() {
         ctx.bezierCurveTo(fromPoint.x + gridSize, fromPoint.y, toPoint.x - gridSize, toPoint.y, toPoint.x, toPoint.y);
         ctx.stroke();
     });
+}
+
+function drawActiveWire() {
+    if (!activeWire) return;
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = computedStyles.getPropertyValue(`--pin-${activeWire.type}-color`).trim();
+    ctx.beginPath();
+    ctx.moveTo(activeWire.from.x, activeWire.from.y);
+    ctx.bezierCurveTo(activeWire.from.x + gridSize, activeWire.from.y, activeWire.to.x - gridSize, activeWire.to.y, activeWire.to.x, activeWire.to.y);
+    ctx.stroke();
 }
 
 function resizeCanvas() {
@@ -59,6 +78,10 @@ new UserInput(canvas, {
         return null;
     },
 
+    getPinAtPoint: (x, y) => {
+        return graph.getPinAtPoint(x, y);
+    },
+
     onPan: (x, y) => {
         panOffset.x = x;
         panOffset.y = y;
@@ -73,6 +96,11 @@ new UserInput(canvas, {
         const zoomFactor = zoomLevel / oldZoom;
         panOffset.x = x - (x - panOffset.x) * zoomFactor;
         panOffset.y = y - (y - panOffset.y) * zoomFactor;
+        drawCanvas();
+    },
+
+    onActiveWire: (wire) => {
+        activeWire = wire;
         drawCanvas();
     },
 

@@ -200,4 +200,46 @@ export class NodeGraph {
         const dims = this.graphSize(output);
         recurse(output, dims.x, dims.y / 2);
     }
+
+    getPinAtPoint(x, y) {
+        for (let i = this.nodes.length - 1; i >= 0; i--)
+        {
+            const pin = this.nodes[i].getPinAtPoint(x, y);
+            if (pin) return pin;
+        }
+        return null;
+    }
+
+    connectWire(wire) {
+        if (!wire) return;
+    
+        const pos = wire.type === "in" ? wire.from : wire.to;
+        const pin = this.getPinAtPoint(pos.x, pos.y);
+    
+        if (!pin) return;
+        if (wire.type === pin.type) return;
+        if (wire.node === pin.node) return;
+    
+        let input = {};
+        let output = {};
+    
+        // Figure out who's the input and who's the output in order to make the connection.
+        if (wire.type === "in") {
+            input = { node: wire.node, pin: wire.pin };
+            output = { node: pin.node, pin: pin.pin };
+        } else  {
+            input = { node: pin.node, pin: pin.pin };
+            output = { node: wire.node, pin: wire.pin };
+        }
+    
+        // The wire is trying to connect to a pin of the correct type in a different node,
+        // destroy the old connections and create the new one.
+        this.connections = this.connections.filter(c => !(c.to.node === input.node && c.to.pin === input.pin));    
+        this.connections = this.connections.filter(c => !(c.from.node === output.node && c.from.pin === output.pin));
+
+        this.connections.push({
+            from: { node: output.node, pin: output.pin },
+            to: { node: input.node, pin: input.pin }
+        });
+    }
 }

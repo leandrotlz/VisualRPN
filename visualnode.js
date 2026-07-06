@@ -2,6 +2,8 @@ const computedStyles = window.getComputedStyle(document.documentElement);
 const gridSize = parseFloat(computedStyles.getPropertyValue('--grid-size')) || 40;
 
 const TITLE_HEIGHT = 30;
+const PIN_SIZE = 5;
+const PIN_HITBOX = PIN_SIZE + 3;
 const PIN_LOCATION = TITLE_HEIGHT + 16;
 const PIN_SEPARATION = 20;
 const PIN_TEXT_OFFSET_X = 12;
@@ -29,12 +31,28 @@ export class VisualNode {
         }
     }
 
+    getPinAtPoint(x, y) {
+        for (let i = 0; i < this.inputPins.length; i++ ) {
+            const pos = this.getPinPosition(i, false);
+            if (Math.hypot(x - pos.x, y - pos.y) < PIN_HITBOX) {
+                return { node: this, type: "in", pin: i, to: { x: pos.x, y: pos.y } }
+            }
+        }
+        for (let i = 0; i < this.outputPins.length; i++ ) {
+            const pos = this.getPinPosition(i, true);
+            if (Math.hypot(x - pos.x, y - pos.y) < PIN_HITBOX) {
+                return { node: this, type: "out", pin: i, from: { x: pos.x, y: pos.y } }
+            }
+        }
+        return null;
+    }
+
     drawPin(ctx, i, displayText, output) {
         const pos = this.getPinPosition(i, output);
         const side = output ? "out" : "in";
         ctx.fillStyle = computedStyles.getPropertyValue(`--pin-${side}-color`).trim();
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+        ctx.arc(pos.x, pos.y, PIN_SIZE, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.font = computedStyles.getPropertyValue('--node-body-font').trim();
