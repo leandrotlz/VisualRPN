@@ -131,7 +131,7 @@ export class UserInput {
             const { panOffset, zoomLevel } = this.getViewport();
 
             if (e.touches.length === 1) {
-                this.interactStart(e.touches[0].clientX + e.touches[1].clientX)
+                this.interactStart(e.touches[0].clientX, e.touches[0].clientY)
             } else if (e.touches.length === 2) {
                 this.setPanningState(false);
                 // Store the midpoint between the two touches to zoom around it.
@@ -145,13 +145,7 @@ export class UserInput {
         this.canvas.addEventListener('touchmove', (e) =>{
             e.preventDefault();
             if (e.touches.length === 1) {
-                const touch = e.touches[0];
-                if (this.pan.active) {
-                    this.onPan(touch.clientX - this.pan.x, touch.clientY - this.pan.y);
-                } else if (this.drag.node) {
-                    const pos = this.getWorldPoint(touch.clientX, touch.clientY);
-                    this.onNodeMove(this.drag.node, pos.x - this.drag.x, pos.y - this.drag.y, e.shiftKey)
-                }
+                this.interactMove(e.touches[0].clientX, e.touches[0].clientY, e.shiftKey);
             } else if (e.touches.length === 2 && this.pinch.initialDistance > 0) {
                 const distance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const zoom = this.pinch.initialZoom * (distance / this.pinch.initialDistance);
