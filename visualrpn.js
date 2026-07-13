@@ -58,8 +58,8 @@ function drawActiveWire() {
 }
 
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
 
     drawCanvas();
 }

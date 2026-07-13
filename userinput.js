@@ -28,6 +28,14 @@ export class UserInput {
         this.pan.y = y;
     }
 
+    getCanvasPoint(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
     getWorldPoint(x, y) {
         const { panOffset, zoomLevel } = this.getViewport();
         return {
@@ -59,9 +67,9 @@ export class UserInput {
         if (wire) {
             wire.drag = true;
             if (wire.type === "in") {
-                wire.from = { x: x, y: y };
+                wire.from = { x: pos.x, y: pos.y };
             } else {
-                wire.to = { x: x, y: y };
+                wire.to = { x: pos.x, y: pos.y };
             }
             this.wire = wire;
             // We don't call onActiveWire here because we want to confirm it's a drag.
@@ -102,19 +110,21 @@ export class UserInput {
     addListeners() {
         this.canvas.addEventListener('mousedown', (e) => {
             const { panOffset } = this.getViewport();
+            const pos = this.getCanvasPoint(e.clientX, e.clientY);
 
             if (e.button === 0)
             {
-                this.interactStart(e.clientX, e.clientY);
+                this.interactStart(pos.x, pos.y);
             }
             else if (e.button === 1) {
                 // Middle button always pans and doesn't change node selection.
-                this.setPanningState(true, e.clientX - panOffset.x, e.clientY - panOffset.y);
+                this.setPanningState(true, pos.x - panOffset.x, pos.y - panOffset.y);
             }
         });
 
         this.canvas.addEventListener('mousemove', (e) => {
-            this.interactMove(e.clientX, e.clientY, e.shiftKey);
+            const pos = this.getCanvasPoint(e.clientX, e.clientY);
+            this.interactMove(pos.x, pos.y, e.shiftKey);
         });
 
         window.addEventListener('mouseup', (e) => {
@@ -123,21 +133,25 @@ export class UserInput {
 
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
+            const pos = this.getCanvasPoint(e.clientX, e.clientY);
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            this.onZoom(delta, e.clientX, e.clientY, true);
+            this.onZoom(delta, pos.x, pos.y, true);
         });
 
         this.canvas.addEventListener('touchstart', (e) => {
             const { panOffset, zoomLevel } = this.getViewport();
 
             if (e.touches.length === 1) {
-                this.interactStart(e.touches[0].clientX, e.touches[0].clientY)
+                const pos = this.getCanvasPoint(e.touches[0].clientX, e.touches[0].clientY);
+                this.interactStart(pos.x, pos.y);
             } else if (e.touches.length === 2) {
                 this.setPanningState(false);
                 // Store the midpoint between the two touches to zoom around it.
-                this.pinch.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                this.pinch.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                this.pinch.initialDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const t0 = this.getCanvasPoint(e.touches[0].clientX, e.touches[0].clientY);
+                const t1 = this.getCanvasPoint(e.touches[1].clientX, e.touches[1].clientY);
+                this.pinch.x = (t0.x + t1.x) / 2;
+                this.pinch.y = (t0.y + t1.y) / 2;
+                this.pinch.initialDistance = Math.hypot(t0.x - t1.x, t0.y - t1.y);
                 this.pinch.initialZoom = zoomLevel;
             }
         }, { passive: false });
@@ -145,9 +159,12 @@ export class UserInput {
         this.canvas.addEventListener('touchmove', (e) =>{
             e.preventDefault();
             if (e.touches.length === 1) {
-                this.interactMove(e.touches[0].clientX, e.touches[0].clientY, e.shiftKey);
+                const pos = this.getCanvasPoint(e.touches[0].clientX, e.touches[0].clientY);
+                this.interactMove(pos.x, pos.y, e.shiftKey);
             } else if (e.touches.length === 2 && this.pinch.initialDistance > 0) {
-                const distance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const t0 = this.getCanvasPoint(e.touches[0].clientX, e.touches[0].clientY);
+                const t1 = this.getCanvasPoint(e.touches[1].clientX, e.touches[1].clientY);
+                const distance = Math.hypot(t0.x - t1.x, t0.y - t1.y);
                 const zoom = this.pinch.initialZoom * (distance / this.pinch.initialDistance);
                 this.onZoom(zoom, this.pinch.x, this.pinch.y, false);
             }
