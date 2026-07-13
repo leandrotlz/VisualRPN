@@ -17,6 +17,7 @@
     --node-operator-body: #211f26;  /* Surface Container */
     --node-output-bg: #006c35;      /* Green 40 */
     --node-output-body: #00381f;    /* Green 20 */
+    --node-error: #ff0000;
 
     --pin-in-color: #acedff;        /* Cyan 90 */
     --pin-out-color: #fff2b4;       /* Yellow 95 */

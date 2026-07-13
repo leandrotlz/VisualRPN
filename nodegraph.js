@@ -67,7 +67,6 @@ export class NodeGraph {
                 this.nodes.push(node);
 
                 const inputs = [];
-                const args = Array(operator.inputs).fill(null);
                 for (let i = 0; i < numInputs; i++) {
                     // Take the LAST node from the stack and put it at the START of the inputs array.
                     inputs.unshift(stack.pop());
@@ -75,20 +74,14 @@ export class NodeGraph {
 
                 inputs.forEach((input, i) => {
                     // Do not create a wire if the input node is null.
-                    if (input.node.type === "null") {
-                        node.inputPins[i] = "";
-                        args[i] = null;
-                    } else {
+                    if (input.node.type !== "null") {
                         this.connections.push({
                             from: { node: input.node, pin: input.pin },
                             to: { node: node, pin: i }
                         });
-                        node.inputPins[i] = input.node.outputPins[input.pin];
-                        args[i] = node.inputPins[i];
                     }
                 });
 
-                node.outputPins[0] = operator.output(...args)
                 stack.push({ node: node, pin: 0 });
             } else if (t === "null") {
                 // The "null" tokens are special; they represent disconnected inputs.
@@ -113,9 +106,6 @@ export class NodeGraph {
                     from: { node: result.node, pin: result.pin },
                     to: { node: output, pin: 0 }
                 });
-                output.inputPins[0] = result.node.outputPins[result.pin];
-            } else {
-                output.inputPins[0] = "";
             }
         }
 
@@ -123,6 +113,7 @@ export class NodeGraph {
         this.nodes = this.nodes.filter(n => n.type !== "null");
 
         this.resetLayout(output);
+        this.validate();
     }
 
     toString() {
@@ -241,5 +232,58 @@ export class NodeGraph {
             from: { node: output.node, pin: output.pin },
             to: { node: input.node, pin: input.pin }
         });
+
+        this.validate();
+    }
+
+    validate() {
+        const recurse = (node) => {
+            if (!node) return null;
+
+            // Constants are always valid, and this node has an output connected, so presume it's valid.
+            node.valid = true;
+
+            if (node.type === "constant") {
+                return node.outputPins[0];
+            }
+
+            // Operators need to recursively evaluate inputs.
+            if (node.type === "operator") {
+                const operator = OPERATORS[node.title[0]];
+                const args = Array(operator.inputs).fill(null);
+
+                for (let i = 0; i < node.inputPins.length; i++) {
+                    const conn = this.connections.find(c => c.to.node === node && c.to.pin === i);
+
+                    if (conn) {
+                        node.inputPins[i] = recurse(conn.from.node);
+                        args[i] = node.inputPins[i];
+                    } else {
+                        node.inputPins[i] = "";
+                        args[i] = null;
+                        // An input pin is disconnnected, mark this node as invalid.
+                        node.valid = false;
+                    }
+                }
+
+                node.outputPins[0] = operator.output(...args);
+                // If any input pins are disconnected, the node is invalid.
+                // Disconnected output pins will never be visited and invalid by default.
+                return node.outputPins[0];
+            }
+
+            // After everything else is evaluated, update the output node.
+            if (node.type === "output") {
+                const conn = this.connections.find(c => c.to.node === node && c.to.pin === 0);
+                node.inputPins[0] = conn ? recurse(conn.from.node) : "";
+                node.valid = true;
+                return null;
+            }
+        };
+
+        // Mark every node as invalid by default; nodes with all pins connected will be marked as valid.
+        this.nodes.forEach(node => node.valid = false);
+        const outputNode = this.nodes.find(n => n.type === "output");
+        recurse(outputNode);
     }
 }

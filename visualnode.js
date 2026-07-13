@@ -13,6 +13,7 @@ export class VisualNode {
     constructor(type, title, gridX, gridY, width, height, inputPins, outputPins) {
         this.type = type;
         this.title = title;
+        this.valid = false;
 
         this.x = gridX * gridSize;
         this.y = gridY * gridSize;
@@ -66,12 +67,15 @@ export class VisualNode {
     }
 
     draw(ctx, selectedNode) {
-        ctx.fillStyle = computedStyles.getPropertyValue(`--node-${this.type}-body`).trim();
+        const invalidColor = computedStyles.getPropertyValue(`--node-error`).trim();
+        const fillBody = computedStyles.getPropertyValue(`--node-${this.type}-body`).trim();
+        ctx.fillStyle = this.valid ? fillBody : `color-mix(in srgb, ${fillBody}, ${invalidColor} 20%)`;
         ctx.beginPath();
         ctx.roundRect(this.x, this.y, this.width, this.height, 10);
         ctx.fill();
 
-        ctx.fillStyle = computedStyles.getPropertyValue(`--node-${this.type}-bg`).trim();
+        const fillBg = computedStyles.getPropertyValue(`--node-${this.type}-bg`).trim();
+        ctx.fillStyle = this.valid ? fillBg : `color-mix(in srgb, ${fillBg}, ${invalidColor} 5%)`;
         ctx.beginPath();
         ctx.roundRect(this.x, this.y, this.width, TITLE_HEIGHT, 10);
         ctx.fill();
