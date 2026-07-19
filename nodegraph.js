@@ -35,6 +35,10 @@ const OPERATORS = {
     '-':    { name: 'Subtract',         inputs: 2,  output: (v1, v2) => numberInput(v1) - numberInput(v2) },
     '*':    { name: 'Multiply',         inputs: 2,  output: (v1, v2) => numberInput(v1) * numberInput(v2) },
     '/':    { name: 'Divide',           inputs: 2,  output: (v1, v2) => numberInput(v1) / numberInput(v2) },
+    'owned?':    { name: '',           inputs: 1,  output: (v) => v },
+    'char>':    { name: '',           inputs: 1,  output: (v) => v },
+    'eq':   { name: 'Equals',           inputs: 2,  output: (v1, v2) => (v1 === v2) ? 1 : 0 },
+
 };
 
 const computedStyles = window.getComputedStyle(document.documentElement);

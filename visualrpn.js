@@ -14,7 +14,7 @@ let zoomLevel = 1.0;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
-let graph = new NodeGraph("2 5 + 3 * 10 >= ! null null + 2 3 + null + + 9 > ||");
+let graph = new NodeGraph("PositronRevampPart1 owned? PositronRevampPart2 owned? || PositronTF owned? || SynapseTF owned? && SisterPsycheTF owned? PenelopeYinTF owned? || && BastionTF owned? CitadelRevampTF owned? || && ManticoreTF owned? && NuminaTF owned? && MayhemInvader owned? || type char> hero eq &&");
 let selectedNode = null;
 let activeWire = null;  // Holds the pin where a user started a drag, and the current coordinates it's being dragged to.
 
