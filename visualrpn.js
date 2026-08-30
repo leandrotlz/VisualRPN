@@ -14,9 +14,34 @@ let zoomLevel = 1.0;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.0;
 
-let graph = new NodeGraph("2 5 + 3 * 10 >= ! null null + 2 3 + null + + 9 > ||");
+// Header buttons.
+const buttonMenu = document.getElementById('button-menu');
+const buttonAddNode = document.getElementById('button-add-node');
+const buttonDeleteNode = document.getElementById('button-delete-node');
+
+// Sidebar elements.
+const sidebar = document.getElementById('sidebar');
+const sidebarRpnView = document.getElementById('sidebar-rpn-view');
+const sidebarNodeView = document.getElementById('sidebar-node-view');
+const rpnTextbox = document.getElementById('rpn-textbox');
+const buttonCopyRpn = document.getElementById('button-copy-rpn');
+const buttonParseRpn = document.getElementById('button-parse-rpn');
+const buttonClearSelection = document.getElementById('button-clear-selection');
+
+// LocalStorage keys.
+const LS_SIDEBAR_STATE = 'visualrpn-sidebar-state';
+const LS_RPN_CONTENTS = 'visualrpn-rpn-contents';
+
+// Initialize app state from LocalStorage.
+let sidebarOpen = localStorage.getItem(LS_SIDEBAR_STATE) !== 'false';
+sidebar.classList.toggle('open', sidebarOpen);
+let graph = new NodeGraph(localStorage.getItem(LS_RPN_CONTENTS) || rpnTextbox.placeholder);
 let selectedNode = null;
 let activeWire = null;  // Holds the pin where a user started a drag, and the current coordinates it's being dragged to.
+
+// Initialize the textbox with current RPN and keep track of it to detect changes.
+let lastGraphRpn = graph.toString();
+rpnTextbox.value = lastGraphRpn;
 
 function drawCanvas() {
     if (activeWire && !activeWire.drag) {
@@ -29,8 +54,7 @@ function drawCanvas() {
     drawConnections();
     graph.nodes.forEach(node => node.draw(ctx, selectedNode));
     drawActiveWire();
-    // DEBUG: Log the RPN after every change.
-    console.log(graph.toString());
+    updateSidebar();
 }
 
 function drawConnections() {
@@ -56,6 +80,53 @@ function drawActiveWire() {
     ctx.bezierCurveTo(activeWire.from.x + gridSize, activeWire.from.y, activeWire.to.x - gridSize, activeWire.to.y, activeWire.to.x, activeWire.to.y);
     ctx.stroke();
 }
+
+function updateSidebar() {
+    sidebarNodeView.hidden = (selectedNode == null);
+
+    // If this was an update triggered by anything other than the player editing
+    // the RPN manually, update the textbox and LocalStorage.
+    if (document.activeElement !== rpnTextbox) {
+        lastGraphRpn = graph.toString();
+        localStorage.setItem(LS_RPN_CONTENTS, lastGraphRpn);
+        rpnTextbox.value = lastGraphRpn;
+    }
+
+    updateParseButton();
+}
+
+function updateParseButton() {
+    // The Parse button is only enabled if the RPN doesn't match the graph.
+    buttonParseRpn.disabled = (rpnTextbox.value.trim() === lastGraphRpn.trim());
+}
+
+buttonMenu.addEventListener('click', () => {
+    sidebarOpen = !sidebarOpen;
+    sidebar.classList.toggle('open', sidebarOpen);
+    localStorage.setItem(LS_SIDEBAR_STATE, sidebarOpen);
+});
+
+buttonCopyRpn.addEventListener('click', async () => {
+    navigator.clipboard.writeText(rpnTextbox.value);
+});
+
+buttonParseRpn.addEventListener('click', () => {
+    selectedNode = null;
+    graph = new NodeGraph(rpnTextbox.value.trim());
+    lastGraphRpn = graph.toString();
+    updateSidebar();
+    drawCanvas();
+});
+
+buttonClearSelection.addEventListener('click', () => {
+    selectedNode = null;
+    updateSidebar();
+    drawCanvas();
+});
+
+rpnTextbox.addEventListener('input', () => {
+    updateParseButton();
+});
 
 function resizeCanvas() {
     canvas.width = canvas.parentElement.clientWidth;
@@ -111,6 +182,7 @@ new UserInput(canvas, {
             graph.nodes = graph.nodes.filter(n => n !== node);
             graph.nodes.push(node);
         }
+        updateSidebar();
         drawCanvas();
     },
 
@@ -128,4 +200,5 @@ new UserInput(canvas, {
     }
 });
 
+updateSidebar();
 resizeCanvas();
