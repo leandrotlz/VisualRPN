@@ -22,6 +22,11 @@
 
     --pin-in-color: #acedff;        /* Cyan 90 */
     --pin-out-color: #fff2b4;       /* Yellow 95 */
+
+    --button-delete: #601410;       /* On error */
+    --button-delete-hover: #8c1d18; /* Error container */
+    --button-cancel: #332d41;       /* On secondary */
+    --button-cancel-hover: #4a4458; /* On secondary container */
 }
 
 body, html {
@@ -195,4 +200,81 @@ body, html {
     height: 20px;
     fill: var(--node-title-color);
     flex-shrink: 0;
+}
+
+.material-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.material-button:disabled:hover {
+    background-color: transparent;
+}
+
+.modal-dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    background-color: var(--header-color);
+    color: var(--node-title-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+    width: calc(100% - 32px);
+}
+
+.modal-dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.75);
+}
+
+.modal-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.modal-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--node-body-color);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 0px;
+    color: var(--node-title-color);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.modal-button-cancel {
+    background-color: var(--button-cancel);
+}
+
+.modal-button-cancel:hover {
+    background-color: var(--button-cancel-hover);
+}
+
+.modal-button-confirm {
+    background-color: var(--button-delete);
+}
+
+.modal-button-confirm:hover {
+    background-color: var(--button-delete-hover);
 }

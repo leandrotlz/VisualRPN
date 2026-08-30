@@ -192,6 +192,18 @@ export class NodeGraph {
         recurse(output, dims.x, dims.y / 2);
     }
 
+    removeNode(node) {
+        if (!node || (node.type === "output")) return false;
+
+        this.nodes = this.nodes.filter(n => n !== node);
+        this.connections = this.connections.filter(
+            c => c.from.node !== node && c.to.node !== node
+        );
+
+        this.validate();
+        return true;
+    }
+
     getPinAtPoint(x, y) {
         for (let i = this.nodes.length - 1; i >= 0; i--)
         {

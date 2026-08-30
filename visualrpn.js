@@ -28,6 +28,11 @@ const buttonCopyRpn = document.getElementById('button-copy-rpn');
 const buttonParseRpn = document.getElementById('button-parse-rpn');
 const buttonClearSelection = document.getElementById('button-clear-selection');
 
+// Delete Node modal elements.
+const confirmDeleteDialog = document.getElementById('confirm-delete-dialog');
+const buttonConfirmDelete = document.getElementById('button-confirm-delete');
+const buttonCancelDelete = document.getElementById('button-cancel-delete');
+
 // LocalStorage keys.
 const LS_SIDEBAR_STATE = 'visualrpn-sidebar-state';
 const LS_RPN_CONTENTS = 'visualrpn-rpn-contents';
@@ -84,6 +89,9 @@ function drawActiveWire() {
 function updateSidebar() {
     sidebarNodeView.hidden = (selectedNode == null);
 
+    // Enable the Delete button only if a node is selected and it's NOT the output node.
+    buttonDeleteNode.disabled = (selectedNode == null) || (selectedNode.type === "output");
+
     // If this was an update triggered by anything other than the player editing
     // the RPN manually, update the textbox and LocalStorage.
     if (document.activeElement !== rpnTextbox) {
@@ -122,6 +130,32 @@ buttonClearSelection.addEventListener('click', () => {
     selectedNode = null;
     updateSidebar();
     drawCanvas();
+});
+
+buttonDeleteNode.addEventListener('click', () => {
+    if (!selectedNode || selectedNode.type === "output") return;
+    confirmDeleteDialog.showModal();
+});
+
+buttonCancelDelete.addEventListener('click', (e) => {
+    e.preventDefault();
+    confirmDeleteDialog.close();
+});
+
+buttonConfirmDelete.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (selectedNode && graph.removeNode(selectedNode)) {
+        selectedNode = null;
+    }
+    confirmDeleteDialog.close();
+    updateSidebar();
+    drawCanvas();
+});
+
+confirmDeleteDialog.addEventListener('click', (e) => {
+    if (e.target === confirmDeleteDialog) {
+        confirmDeleteDialog.close();
+    }
 });
 
 rpnTextbox.addEventListener('input', () => {
