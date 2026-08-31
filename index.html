@@ -36,10 +36,24 @@
     </div>
     <aside id="sidebar">
         <div id="sidebar-node-view" class="sidebar-view" hidden>
-            <button id="button-clear-selection" class="sidebar-button">Clear Node Selection</button>
+            <div class="editor-field">
+                <label for="node-value-input">Node Value</label>
+                <input type="text" id="node-value-input">
+            </div>
+            <div class="editor-field">
+                <label for="node-type-display">Node Type</label>
+                <div id="node-type-display" class="type-display"></div>
+            </div>
+            <div class="sidebar-buttons">
+                <button id="button-cancel-edit" class="sidebar-button">Cancel</button>
+                <button id="button-save-edit" class="sidebar-button">Save</button>
+            </div>
         </div>
         <div id="sidebar-rpn-view" class="sidebar-view">
-            <textarea id="rpn-textbox" placeholder="1 3 + 2 2 * =="></textarea>
+            <div class="editor-field">
+                <label for="rpn-textbox">RPN String</label>
+                <textarea id="rpn-textbox" placeholder="1 3 + 2 2 * =="></textarea>
+            </div>
             <div class="sidebar-buttons">
                 <button id="button-copy-rpn" class="sidebar-button">Copy</button>
                 <button id="button-parse-rpn" class="sidebar-button" disabled>Parse</button>

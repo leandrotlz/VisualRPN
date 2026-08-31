@@ -136,6 +136,7 @@ body, html {
     box-sizing: border-box;
     resize: none;
     outline: none;
+    transition: border-color 0.2s ease;
 }
 
 #rpn-textbox:focus {
@@ -175,6 +176,73 @@ body, html {
 
 #button-clear-selection:hover {
     background-color: var(--grid-color);
+}
+
+.editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.editor-field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--node-body-color);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+#node-value-input {
+    background-color: var(--bg-color);
+    border: 1px solid var(--grid-color);
+    border-radius: 8px;
+    color: var(--node-title-color);
+    font-family: monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+#node-value-input:focus {
+    border-color: var(--pin-in-color);
+}
+
+#node-value-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#node-value-input::placeholder {
+    color: var(--node-constant-bg);
+}
+
+.type-display {
+    background-color: var(--bg-color);
+    border: 1px solid var(--grid-color);
+    border-radius: 8px;
+    color: var(--node-body-color);
+    font-family: monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    font-weight: 500;
+}
+
+.type-display.type-operator {
+    color: var(--node-operator-bg);
+    border-color: var(--node-operator-bg);
+}
+
+.type-display.type-constant {
+    color: var(--node-constant-bg);
+    border-color: var(--node-constant-bg);
+}
+
+.type-display.type-output {
+    color: var(--node-output-bg);
+    border-color: var(--node-output-bg);
 }
 
 .material-button {

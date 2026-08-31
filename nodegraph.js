@@ -22,7 +22,7 @@ const numberInput = (v) => {
     return Number.isNaN(n) ? 0 : n;
 }
 
-const OPERATORS = {
+export const OPERATORS = {
     '&&':   { name: 'AND',              inputs: 2,  output: (v1, v2) => booleanInput(v1) && booleanInput(v2) ? 1 : 0 },
     '||':   { name: 'OR',               inputs: 2,  output: (v1, v2) => booleanInput(v1) || booleanInput(v2) ? 1 : 0 },
     '!':    { name: 'NOT',              inputs: 1,  output: (v) => booleanInput(v) ? 0 : 1 },

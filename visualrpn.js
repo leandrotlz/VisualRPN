@@ -1,7 +1,7 @@
 import { drawGrid, gridSize } from './canvasgrid.js';
 import { UserInput } from './userinput.js';
 
-import { NodeGraph } from './nodegraph.js';
+import { NodeGraph, OPERATORS } from './nodegraph.js';
 import { VisualNode } from './visualnode.js';
 
 const computedStyles = window.getComputedStyle(document.documentElement);
@@ -26,7 +26,12 @@ const sidebarNodeView = document.getElementById('sidebar-node-view');
 const rpnTextbox = document.getElementById('rpn-textbox');
 const buttonCopyRpn = document.getElementById('button-copy-rpn');
 const buttonParseRpn = document.getElementById('button-parse-rpn');
-const buttonClearSelection = document.getElementById('button-clear-selection');
+
+// Node editor elements.
+const nodeValueInput = document.getElementById('node-value-input');
+const nodeTypeDisplay = document.getElementById('node-type-display');
+const buttonCancelEdit = document.getElementById('button-cancel-edit');
+const buttonSaveEdit = document.getElementById('button-save-edit');
 
 // Delete Node modal elements.
 const confirmDeleteDialog = document.getElementById('confirm-delete-dialog');
@@ -101,6 +106,81 @@ function updateSidebar() {
     }
 
     updateParseButton();
+    updateNodeEditor();
+}
+
+function getNodeType(nodeValue, nodeType) {
+    if (nodeType === "output") return "Output";
+    if (nodeValue in OPERATORS) return "Operator";
+    // TODO: optional libraries will use the type "Function".
+    return "Constant";
+}
+
+function updateNodeType(nodeValue) {
+    const nodeType = getNodeType(nodeValue, selectedNode.type);
+
+    if (nodeType == "Operator" && OPERATORS[nodeValue].name)
+        nodeTypeDisplay.textContent = `${nodeType} (${OPERATORS[nodeValue].name})`;
+    else
+        nodeTypeDisplay.textContent = nodeType;
+
+    nodeTypeDisplay.classList.remove("type-operator", "type-constant", "type-function", "type-output");
+    nodeTypeDisplay.classList.add(`type-${nodeType.toLowerCase()}`);
+
+    buttonSaveEdit.disabled = (selectedNode.type === "output") || (nodeValue === "");
+}
+
+function updateNodeEditor() {
+    if (!selectedNode) return;
+
+    const nodeValue = selectedNode.title[0];
+    nodeValueInput.value = nodeValue;
+    nodeValueInput.disabled = (selectedNode.type === "output");
+
+    updateNodeType(nodeValue);
+}
+
+function applyNodeEdit() {
+    if (!selectedNode) return;
+    if (selectedNode.type === "output") return;
+
+    const newValue = nodeValueInput.value.trim();
+    if (!newValue) return;
+
+    if (newValue in OPERATORS) {
+        // Value is an operator; add the descriptive name if it exists.
+        const operator = OPERATORS[newValue];
+        selectedNode.type = "operator";
+        selectedNode.title = [newValue, operator.name];
+        const oldInputPins = selectedNode.inputPins;
+        selectedNode.inputPins = Array(operator.inputs).fill("");
+        selectedNode.outputPins = [""];
+
+        // If the new operator has less inputs than the new one, drop the excess.
+        const newPinCount = operator.inputs;
+        graph.connections = graph.connections.filter(c => {
+            if (c.to.node === selectedNode && c.to.pin >= newPinCount) return false;
+            return true;
+        });
+    } else {
+        // Value is a constant; drop all incoming connections.
+        graph.connections = graph.connections.filter(c => c.to.node !== selectedNode);
+
+        selectedNode.type = "constant";
+        selectedNode.title = [newValue];
+        selectedNode.inputPins = [];
+        selectedNode.outputPins = [newValue];
+    }
+
+    graph.validate();
+    drawCanvas();
+}
+
+function cancelNodeEdit() {
+    if (!selectedNode) return;
+    selectedNode = null;
+    updateNodeEditor();
+    drawCanvas();
 }
 
 function updateParseButton() {
@@ -122,12 +202,6 @@ buttonParseRpn.addEventListener('click', () => {
     selectedNode = null;
     graph = new NodeGraph(rpnTextbox.value.trim());
     lastGraphRpn = graph.toString();
-    updateSidebar();
-    drawCanvas();
-});
-
-buttonClearSelection.addEventListener('click', () => {
-    selectedNode = null;
     updateSidebar();
     drawCanvas();
 });
@@ -160,6 +234,19 @@ confirmDeleteDialog.addEventListener('click', (e) => {
 
 rpnTextbox.addEventListener('input', () => {
     updateParseButton();
+});
+
+nodeValueInput.addEventListener('input', () => {
+    if (!selectedNode) return;
+    updateNodeType(nodeValueInput.value.trim());
+});
+
+buttonSaveEdit.addEventListener('click', () => {
+    applyNodeEdit();
+});
+
+buttonCancelEdit.addEventListener('click', () => {
+    cancelNodeEdit();
 });
 
 function resizeCanvas() {
