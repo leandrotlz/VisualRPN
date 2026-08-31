@@ -188,6 +188,25 @@ function updateParseButton() {
     buttonParseRpn.disabled = (rpnTextbox.value.trim() === lastGraphRpn.trim());
 }
 
+buttonAddNode.addEventListener('click', () => {
+    // Create a new node at the center of the visible canvas.
+    const newNode = new VisualNode("constant", ["new"], 0, 0, 4, 2, [], ["new"]);
+    const centerX = (canvas.width / 2 - panOffset.x) / zoomLevel;
+    const centerY = (canvas.height / 2 - panOffset.y) / zoomLevel;
+    newNode.x = centerX;
+    newNode.y = centerY;
+    graph.nodes.push(newNode);
+
+    // Select the new node to trigger edit mode in the sidebar.
+    selectedNode = newNode;
+    updateSidebar();
+    drawCanvas();
+
+    // Clear the node value in the editor so the user doesn't need to manually delete "new".
+    nodeValueInput.value = "";
+    nodeValueInput.focus();
+});
+
 buttonMenu.addEventListener('click', () => {
     sidebarOpen = !sidebarOpen;
     sidebar.classList.toggle('open', sidebarOpen);
