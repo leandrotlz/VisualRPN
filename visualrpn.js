@@ -1,8 +1,9 @@
 import { drawGrid, gridSize } from './canvasgrid.js';
 import { UserInput } from './userinput.js';
 
-import { NodeGraph, OPERATORS } from './nodegraph.js';
+import { NodeGraph } from './nodegraph.js';
 import { VisualNode } from './visualnode.js';
+import { libraryManager } from './rpnlibraries.js';
 
 const computedStyles = window.getComputedStyle(document.documentElement);
 const canvas = document.getElementById('canvas');
@@ -23,6 +24,7 @@ const buttonDeleteNode = document.getElementById('button-delete-node');
 const sidebar = document.getElementById('sidebar');
 const sidebarRpnView = document.getElementById('sidebar-rpn-view');
 const sidebarNodeView = document.getElementById('sidebar-node-view');
+const sidebarLibrariesView = document.getElementById('sidebar-libraries-view');
 const rpnTextbox = document.getElementById('rpn-textbox');
 const buttonCopyRpn = document.getElementById('button-copy-rpn');
 const buttonParseRpn = document.getElementById('button-parse-rpn');
@@ -33,6 +35,9 @@ const nodeTypeDisplay = document.getElementById('node-type-display');
 const buttonCancelEdit = document.getElementById('button-cancel-edit');
 const buttonSaveEdit = document.getElementById('button-save-edit');
 
+// RPN Libraries elements.
+const librariesContainer = document.getElementById('libraries-container');
+
 // Delete Node modal elements.
 const confirmDeleteDialog = document.getElementById('confirm-delete-dialog');
 const buttonConfirmDelete = document.getElementById('button-confirm-delete');
@@ -41,10 +46,26 @@ const buttonCancelDelete = document.getElementById('button-cancel-delete');
 // LocalStorage keys.
 const LS_SIDEBAR_STATE = 'visualrpn-sidebar-state';
 const LS_RPN_CONTENTS = 'visualrpn-rpn-contents';
+const LS_ACTIVE_LIBRARIES = 'visualrpn-active-libraries';
 
 // Initialize app state from LocalStorage.
 let sidebarOpen = localStorage.getItem(LS_SIDEBAR_STATE) !== 'false';
 sidebar.classList.toggle('open', sidebarOpen);
+
+// Load active libraries from LocalStorage.
+const savedLibraries = localStorage.getItem(LS_ACTIVE_LIBRARIES);
+if (savedLibraries) {
+    try {
+        const activeLibs = JSON.parse(savedLibraries);
+        for (const libName of activeLibs) {
+            libraryManager.enableLibrary(libName);
+        }
+    } catch (e) {
+        console.warn('Failed to parse saved libraries:', e);
+    }
+}
+
+// Load the initial graph from LocalStorage or use the placeholder graph.
 let graph = new NodeGraph(localStorage.getItem(LS_RPN_CONTENTS) || rpnTextbox.placeholder);
 let selectedNode = null;
 let activeWire = null;  // Holds the pin where a user started a drag, and the current coordinates it's being dragged to.
@@ -92,7 +113,9 @@ function drawActiveWire() {
 }
 
 function updateSidebar() {
-    sidebarNodeView.hidden = (selectedNode == null);
+    const nodeSelected = (selectedNode != null);
+    sidebarNodeView.hidden = !nodeSelected;
+    sidebarLibrariesView.hidden = nodeSelected;
 
     // Enable the Delete button only if a node is selected and it's NOT the output node.
     buttonDeleteNode.disabled = (selectedNode == null) || (selectedNode.type === "output");
@@ -107,22 +130,30 @@ function updateSidebar() {
 
     updateParseButton();
     updateNodeEditor();
+    updateLibraries();
 }
 
 function getNodeType(nodeValue, nodeType) {
     if (nodeType === "output") return "Output";
-    if (nodeValue in OPERATORS) return "Operator";
-    // TODO: optional libraries will use the type "Function".
+    const operator = libraryManager.getOperator(nodeValue);
+    if (operator) {
+        return libraryManager.getNodeType(nodeValue);
+    }
     return "Constant";
 }
 
 function updateNodeType(nodeValue) {
     const nodeType = getNodeType(nodeValue, selectedNode.type);
 
-    if (nodeType == "Operator" && OPERATORS[nodeValue].name)
-        nodeTypeDisplay.textContent = `${nodeType} (${OPERATORS[nodeValue].name})`;
-    else
+    if (nodeType === "Operator" || nodeType === "Function") {
+        const operator = libraryManager.getOperator(nodeValue);
+        if (operator && operator.name)
+            nodeTypeDisplay.textContent = `${nodeType} (${operator.name})`;
+        else
+            nodeTypeDisplay.textContent = nodeType;
+    } else {
         nodeTypeDisplay.textContent = nodeType;
+    }
 
     nodeTypeDisplay.classList.remove("type-operator", "type-constant", "type-function", "type-output");
     nodeTypeDisplay.classList.add(`type-${nodeType.toLowerCase()}`);
@@ -147,11 +178,17 @@ function applyNodeEdit() {
     const newValue = nodeValueInput.value.trim();
     if (!newValue) return;
 
-    if (newValue in OPERATORS) {
+    // Apply canonical case for case-insensitive libraries on save
+    const canonicalValue = libraryManager.getCanonicalKey(newValue);
+
+    if (libraryManager.isOperator(canonicalValue)) {
         // Value is an operator; add the descriptive name if it exists.
-        const operator = OPERATORS[newValue];
-        selectedNode.type = "operator";
-        selectedNode.title = [newValue, operator.name];
+        const operator = libraryManager.getOperator(canonicalValue);
+        const visualNodeType = operator._nodeType && operator._nodeType.toLowerCase() !== "operator"
+            ? operator._nodeType.toLowerCase()
+            : "operator";
+        selectedNode.type = visualNodeType;
+        selectedNode.title = [canonicalValue, operator.name];
         const oldInputPins = selectedNode.inputPins;
         selectedNode.inputPins = Array(operator.inputs).fill("");
         selectedNode.outputPins = [""];
@@ -167,9 +204,9 @@ function applyNodeEdit() {
         graph.connections = graph.connections.filter(c => c.to.node !== selectedNode);
 
         selectedNode.type = "constant";
-        selectedNode.title = [newValue];
+        selectedNode.title = [canonicalValue];
         selectedNode.inputPins = [];
-        selectedNode.outputPins = [newValue];
+        selectedNode.outputPins = [canonicalValue];
     }
 
     graph.validate();
@@ -186,6 +223,61 @@ function cancelNodeEdit() {
 function updateParseButton() {
     // The Parse button is only enabled if the RPN doesn't match the graph.
     buttonParseRpn.disabled = (rpnTextbox.value.trim() === lastGraphRpn.trim());
+}
+
+function updateLibraries() {
+    if (!librariesContainer) return;
+    
+    librariesContainer.innerHTML = '';
+    
+    for (const lib of libraryManager.getAllLibraries()) {
+        const label = document.createElement('label');
+        label.className = 'library-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = libraryManager.isActive(lib.name);
+        checkbox.disabled = lib.alwaysOn;
+        
+        const inUse = libraryManager.isLibraryInUse(lib.name, graph);
+        if (inUse && !lib.alwaysOn) {
+            checkbox.disabled = true;
+            label.title = 'Library is in use.';
+        }
+        
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                libraryManager.enableLibrary(lib.name);
+            } else {
+                libraryManager.disableLibrary(lib.name, graph);
+            }
+            saveActiveLibraries();
+            refreshGraph();
+        });
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'library-name';
+        nameSpan.textContent = lib.name;
+        
+        label.appendChild(checkbox);
+        label.appendChild(nameSpan);
+        
+        librariesContainer.appendChild(label);
+    }
+}
+
+function saveActiveLibraries() {
+    const active = Array.from(libraryManager.activeLibraries);
+    localStorage.setItem(LS_ACTIVE_LIBRARIES, JSON.stringify(active));
+}
+
+function refreshGraph() {
+    const currentRpn = graph.toString();
+    selectedNode = null;
+    graph = new NodeGraph(currentRpn);
+    lastGraphRpn = graph.toString();
+    updateSidebar();
+    drawCanvas();
 }
 
 buttonAddNode.addEventListener('click', () => {

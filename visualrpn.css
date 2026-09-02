@@ -16,6 +16,8 @@
     --node-constant-body: #211f26;  /* Surface Container */
     --node-operator-bg: #4f378b;    /* On primary container */
     --node-operator-body: #211f26;  /* Surface Container */
+    --node-function-bg: #3271ea;    /* Blue 50 */
+    --node-function-body: #001944;  /* Blue 10 */
     --node-output-bg: #006c35;      /* Green 40 */
     --node-output-body: #00381f;    /* Green 20 */
     --node-error: #ff0000;
@@ -235,6 +237,11 @@ body, html {
     border-color: var(--node-operator-bg);
 }
 
+.type-display.type-function {
+    color: var(--node-function-bg);
+    border-color: var(--node-function-bg);
+}
+
 .type-display.type-constant {
     color: var(--node-constant-bg);
     border-color: var(--node-constant-bg);
@@ -345,4 +352,53 @@ body, html {
 
 .modal-button-confirm:hover {
     background-color: var(--button-delete-hover);
+}
+
+#libraries-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.library-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--grid-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    user-select: none;
+}
+
+.library-item:hover {
+    background-color: var(--grid-color);
+}
+
+.library-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--node-operator-bg);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.library-item input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.library-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--node-title-color);
+}
+
+#sidebar-libraries-view {
+    flex: 0 0 auto;
 }

@@ -1,4 +1,5 @@
 import { VisualNode } from './visualnode.js';
+import { libraryManager } from './rpnlibraries.js';
 
 const booleanInput = (v) => {
     // Any other ways for JavaScript to mess up data types? Yes. Most definitely.
@@ -22,21 +23,6 @@ const numberInput = (v) => {
     return Number.isNaN(n) ? 0 : n;
 }
 
-export const OPERATORS = {
-    '&&':   { name: 'AND',              inputs: 2,  output: (v1, v2) => booleanInput(v1) && booleanInput(v2) ? 1 : 0 },
-    '||':   { name: 'OR',               inputs: 2,  output: (v1, v2) => booleanInput(v1) || booleanInput(v2) ? 1 : 0 },
-    '!':    { name: 'NOT',              inputs: 1,  output: (v) => booleanInput(v) ? 0 : 1 },
-    '==':   { name: 'Equals',           inputs: 2,  output: (v1, v2) => numberInput(v1) === numberInput(v2) ? 1 : 0 },
-    '>':    { name: 'Greater',          inputs: 2,  output: (v1, v2) => numberInput(v1) > numberInput(v2) ? 1 : 0 },
-    '>=':   { name: 'Greater/Equal',    inputs: 2,  output: (v1, v2) => numberInput(v1) >= numberInput(v2) ? 1 : 0 },
-    '<':    { name: 'Less',             inputs: 2,  output: (v1, v2) => numberInput(v1) < numberInput(v2) ? 1 : 0 },
-    '<=':   { name: 'Less/Equal',       inputs: 2,  output: (v1, v2) => numberInput(v1) <= numberInput(v2) ? 1 : 0 },
-    '+':    { name: 'Add',              inputs: 2,  output: (v1, v2) => numberInput(v1) + numberInput(v2) },
-    '-':    { name: 'Subtract',         inputs: 2,  output: (v1, v2) => numberInput(v1) - numberInput(v2) },
-    '*':    { name: 'Multiply',         inputs: 2,  output: (v1, v2) => numberInput(v1) * numberInput(v2) },
-    '/':    { name: 'Divide',           inputs: 2,  output: (v1, v2) => numberInput(v1) / numberInput(v2) },
-};
-
 const computedStyles = window.getComputedStyle(document.documentElement);
 const gridSize = parseFloat(computedStyles.getPropertyValue('--grid-size')) || 40;
 
@@ -58,12 +44,12 @@ export class NodeGraph {
         for (const t of tokens) {
             if (!t) continue;
 
-            if (t in OPERATORS) {
-                const operator = OPERATORS[t];
-
+            const operator = libraryManager.getOperator(t);
+            if (operator) {
                 // The RPN string given may not contain enough inputs, so cap at the stack length.
                 const numInputs = Math.min(stack.length, operator.inputs);
-                const node = new VisualNode("operator", [t, operator.name], 0, 0, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT, Array(operator.inputs).fill(""), [""]);
+                const nodeType = (operator._nodeType ? operator._nodeType.toLowerCase() : "operator");
+                const node = new VisualNode(nodeType, [t, operator.name], 0, 0, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT, Array(operator.inputs).fill(""), [""]);
                 this.nodes.push(node);
 
                 const inputs = [];
@@ -260,8 +246,12 @@ export class NodeGraph {
             }
 
             // Operators need to recursively evaluate inputs.
-            if (node.type === "operator") {
-                const operator = OPERATORS[node.title[0]];
+            if (node.type === "operator" || node.type === "function") {
+                const operator = libraryManager.getOperator(node.title[0]);
+                if (!operator) {
+                    node.valid = false;
+                    return null;
+                }
                 const args = Array(operator.inputs).fill(null);
 
                 for (let i = 0; i < node.inputPins.length; i++) {
